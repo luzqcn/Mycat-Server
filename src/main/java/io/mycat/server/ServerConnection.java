@@ -31,20 +31,11 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
-
 import io.mycat.MycatServer;
-import io.mycat.backend.mysql.DataType;
-import io.mycat.backend.mysql.nio.handler.MiddlerQueryResultHandler;
-import io.mycat.backend.mysql.nio.handler.MiddlerResultHandler;
-import io.mycat.backend.mysql.nio.handler.MultiNodeQueryHandler;
-import io.mycat.backend.mysql.nio.handler.SecondHandler;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.net.FrontendConnection;
 import io.mycat.route.RouteResultset;
-import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.server.handler.MysqlInformationSchemaHandler;
 import io.mycat.server.handler.MysqlProcHandler;
 import io.mycat.server.parser.ServerParse;
@@ -65,7 +56,7 @@ public class ServerConnection extends FrontendConnection {
 
 	private volatile int txIsolation;
 	private volatile boolean autocommit;
-	private volatile boolean createNewTx; //事务提交或回滚后,是否自动开启新事务. true时，开启新事务,false时,不开启新事务
+	private volatile boolean preAcStates; //上一个ac状态,默认为true
 	private volatile boolean txInterrupted;
 	private volatile String txInterrputMsg = "";
 	private long lastInsertId;
@@ -74,12 +65,13 @@ public class ServerConnection extends FrontendConnection {
 	 * 标志是否执行了lock tables语句，并处于lock状态
 	 */
 	private volatile boolean isLocked = false;
-
+	
 	public ServerConnection(NetworkChannel channel)
 			throws IOException {
 		super(channel);
 		this.txInterrupted = false;
 		this.autocommit = true;
+		this.preAcStates = true;
 	}
 
 	@Override
@@ -410,12 +402,12 @@ public class ServerConnection extends FrontendConnection {
 				+ ", autocommit=" + autocommit + ", schema=" + schema + "]";
 	}
 
-	public boolean isCreateNewTx() {
-		return createNewTx;
+	public boolean isPreAcStates() {
+		return preAcStates;
 	}
 
-	public void setCreateNewTx(boolean createNewTx) {
-		this.createNewTx = createNewTx;
+	public void setPreAcStates(boolean preAcStates) {
+		this.preAcStates = preAcStates;
 	}
 
 }
